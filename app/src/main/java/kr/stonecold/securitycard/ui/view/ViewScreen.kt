@@ -9,8 +9,9 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.ClipData
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,8 +38,8 @@ fun ViewScreen(
     val isDeleted by viewModel.isDeleted.collectAsState()
     var isSearchMode by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     LaunchedEffect(id) {
         viewModel.loadCard(id)
@@ -153,7 +154,8 @@ fun ViewScreen(
                                         modifier = Modifier
                                             .border(0.5.dp, Color.LightGray)
                                             .clickable {
-                                                clipboardManager.setText(AnnotatedString(code))
+                                                val clip = ClipData.newPlainText("SecurityCode", code)
+                                                clipboardManager.setPrimaryClip(clip)
                                                 Toast.makeText(context, "${index + 1}번 코드가 복사되었습니다.", Toast.LENGTH_SHORT).show()
                                             }
                                     ) {
@@ -181,7 +183,8 @@ fun ViewScreen(
                     uiState.accounts.forEachIndexed { index, account ->
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
-                                clipboardManager.setText(AnnotatedString(account.accountNumber))
+                                val clip = ClipData.newPlainText("AccountNumber", account.accountNumber)
+                                clipboardManager.setPrimaryClip(clip)
                                 Toast.makeText(context, "계좌번호가 복사되었습니다.", Toast.LENGTH_SHORT).show()
                             },
                             shape = MaterialTheme.shapes.medium,
@@ -299,7 +302,7 @@ fun CodeSearchView(cardNumber: String, codes: List<String>, modifier: Modifier =
                 SerialSearchItem("3번째", serialIndex3, { if (it.length <= 2) serialIndex3 = it }, s3)
             }
             Spacer(modifier = Modifier.height(32.dp))
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            HorizontalDivider(color = Color.LightGray, thickness = 1.dp)
             Spacer(modifier = Modifier.height(32.dp))
         }
 
