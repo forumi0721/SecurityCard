@@ -144,25 +144,18 @@ jobs:
           echo "Generated Changelog:"
           cat CHANGELOG.md
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename Release Asset
+        run: mv ./app-release.apk ./${{ env.PROJECT_NAME }}-release-${{ env.VERSION }}.apk
+
+      - name: Create GitHub Release and Upload Asset
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
-          release_name: Release ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
           body_path: ./CHANGELOG.md
+          files: ./${{ env.PROJECT_NAME }}-release-${{ env.VERSION }}.apk
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./app-release.apk
-          asset_name: ${{ env.PROJECT_NAME }}-release-${{ env.VERSION }}.apk
-          asset_content_type: application/octet-stream
 
