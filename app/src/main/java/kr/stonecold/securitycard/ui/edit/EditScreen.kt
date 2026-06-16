@@ -124,21 +124,29 @@ fun EditScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("보안카드 코드 입력", style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(
-                    value = if (codeLength == 0) "" else codeLength.toString(),
-                    onValueChange = { 
-                        val newLength = it.toIntOrNull() ?: 0
-                        if (newLength in 1..100) {
-                            viewModel.updateCodeLength(newLength)
-                        } else if (it.isEmpty()) {
-                            viewModel.updateCodeLength(0)
-                        }
-                    },
-                    label = { Text("갯수") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.width(80.dp),
-                    singleLine = true
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { viewModel.updateCodeLength(maxOf(1, codeLength - 1)) }) {
+                        Text("-", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    }
+                    OutlinedTextField(
+                        value = if (codeLength == 0) "" else codeLength.toString(),
+                        onValueChange = { 
+                            val newLength = it.toIntOrNull() ?: 0
+                            if (newLength in 1..100) {
+                                viewModel.updateCodeLength(newLength)
+                            } else if (it.isEmpty()) {
+                                viewModel.updateCodeLength(0)
+                            }
+                        },
+                        label = { Text("갯수") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.width(80.dp),
+                        singleLine = true
+                    )
+                    IconButton(onClick = { viewModel.updateCodeLength(minOf(100, codeLength + 1)) }) {
+                        Text("+", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -159,7 +167,7 @@ fun EditScreen(
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    itemsIndexed(codes) { index, code ->
+                    itemsIndexed(codes.take(codeLength)) { index, code ->
                         Box(modifier = Modifier.border(0.5.dp, Color.LightGray)) {
                             CodeInputItem(
                                 index = index + 1,
