@@ -15,3 +15,8 @@
 local.properties
 
 .kotlin/
+
+# Keystore files
+app/release-keystore.jks
+*.jks
+*.keystore
