@@ -23,15 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation3.runtime.NavKey
-import kr.stonecold.securitycard.Settings
-import kr.stonecold.securitycard.View
 import kr.stonecold.securitycard.core.data.SecurityCardEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onItemClick: (NavKey) -> Unit,
+    onItemClick: (Long) -> Unit,
     onAddClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -39,6 +36,8 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+    var sortMode by remember { mutableStateOf(false) }
+    var sortedList by remember { mutableStateOf<List<SecurityCardEntity>>(emptyList()) }
     val context = LocalContext.current
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -57,46 +56,69 @@ fun MainScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("보안카드 관리") },
+                title = { Text(if (sortMode) "순서 정렬" else "보안카드 관리") },
                 actions = {
-                    Box {
-                        IconButton(onClick = { showMenu = !showMenu }) {
-                            Text("⋮", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    if (sortMode) {
+                        TextButton(onClick = { sortMode = false }) {
+                            Text("취소", color = MaterialTheme.colorScheme.onSurface)
                         }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("설정") },
-                                onClick = {
-                                    showMenu = false
-                                    onSettingsClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("내보내기 (Export)") },
-                                onClick = {
-                                    showMenu = false
-                                    exportLauncher.launch("security_cards.json")
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("가져오기 (Import)") },
-                                onClick = {
-                                    showMenu = false
-                                    importLauncher.launch(arrayOf("application/json", "*/*"))
-                                }
-                            )
+                        TextButton(onClick = {
+                            viewModel.saveOrder(sortedList)
+                            sortMode = false
+                        }) {
+                            Text("저장", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        Box {
+                            IconButton(onClick = { showMenu = !showMenu }) {
+                                Text("⋮", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("정렬 모드") },
+                                    onClick = {
+                                        showMenu = false
+                                        sortMode = true
+                                        val data = (state as? MainScreenUiState.Success)?.data ?: emptyList()
+                                        sortedList = data.toMutableList()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("보안카드 추가") },
+                                    onClick = {
+                                        showMenu = false
+                                        onAddClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("설정") },
+                                    onClick = {
+                                        showMenu = false
+                                        onSettingsClick()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("내보내기 (Export)") },
+                                    onClick = {
+                                        showMenu = false
+                                        exportLauncher.launch("security_cards.json")
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("가져오기 (Import)") },
+                                    onClick = {
+                                        showMenu = false
+                                        importLauncher.launch(arrayOf("application/json", "*/*"))
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
-                Text("+", fontSize = 24.sp)
-            }
         }
     ) { paddingValues ->
         Box(
@@ -110,7 +132,7 @@ fun MainScreen(
                 }
                 is MainScreenUiState.Success -> {
                     val data = (state as MainScreenUiState.Success).data
-                    if (data.isEmpty()) {
+                    if (data.isEmpty() && !sortMode) {
                         Text(
                             text = "등록된 보안카드가 없습니다",
                             fontSize = 18.sp,
@@ -118,12 +140,36 @@ fun MainScreen(
                             modifier = Modifier.align(Alignment.Center)
                         )
                     } else {
+                        val displayList = if (sortMode) sortedList else data
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 80.dp) // space for FAB
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            items(data) { card ->
-                                SecurityCardItem(card = card, onClick = { onItemClick(View(card.id)) })
+                            items(displayList, key = { it.id }) { card ->
+                                SecurityCardItem(
+                                    card = card,
+                                    isSortMode = sortMode,
+                                    onClick = { if (!sortMode) onItemClick(card.id) },
+                                    onMoveUp = {
+                                        val index = sortedList.indexOf(card)
+                                        if (index > 0) {
+                                            val mutableList = sortedList.toMutableList()
+                                            val temp = mutableList[index]
+                                            mutableList[index] = mutableList[index - 1]
+                                            mutableList[index - 1] = temp
+                                            sortedList = mutableList
+                                        }
+                                    },
+                                    onMoveDown = {
+                                        val index = sortedList.indexOf(card)
+                                        if (index >= 0 && index < sortedList.size - 1) {
+                                            val mutableList = sortedList.toMutableList()
+                                            val temp = mutableList[index]
+                                            mutableList[index] = mutableList[index + 1]
+                                            mutableList[index + 1] = temp
+                                            sortedList = mutableList
+                                        }
+                                    }
+                                )
                                 HorizontalDivider()
                             }
                         }
@@ -142,11 +188,17 @@ fun MainScreen(
 }
 
 @Composable
-fun SecurityCardItem(card: SecurityCardEntity, onClick: () -> Unit) {
+fun SecurityCardItem(
+    card: SecurityCardEntity,
+    isSortMode: Boolean,
+    onClick: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clickable(enabled = !isSortMode) { onClick() }
             .padding(vertical = 16.dp, horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -156,7 +208,7 @@ fun SecurityCardItem(card: SecurityCardEntity, onClick: () -> Unit) {
                 .background(MaterialTheme.colorScheme.primary, shape = androidx.compose.foundation.shape.CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text("S", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+            Text(card.name.firstOrNull()?.toString() ?: "S", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
         }
         
         Spacer(modifier = Modifier.width(16.dp))
@@ -167,7 +219,17 @@ fun SecurityCardItem(card: SecurityCardEntity, onClick: () -> Unit) {
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
         )
+        
+        if (isSortMode) {
+            IconButton(onClick = onMoveUp) {
+                Text("▲", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            IconButton(onClick = onMoveDown) {
+                Text("▼", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }

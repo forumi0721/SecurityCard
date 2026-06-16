@@ -11,6 +11,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kr.stonecold.securitycard.core.data.SecurityCardDao
 import kr.stonecold.securitycard.core.data.SecurityCardEntity
+import kr.stonecold.securitycard.core.data.AccountInfo
 import kr.stonecold.securitycard.core.security.CryptoManager
 import javax.inject.Inject
 
@@ -21,6 +22,9 @@ class EditViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentId: Long? = null
+
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _title = MutableStateFlow("")
     val title: StateFlow<String> = _title.asStateFlow()
@@ -36,6 +40,9 @@ class EditViewModel @Inject constructor(
 
     private val _codes = MutableStateFlow<List<String>>(List(35) { "" })
     val codes: StateFlow<List<String>> = _codes.asStateFlow()
+
+    private val _accounts = MutableStateFlow<List<AccountInfo>>(emptyList())
+    val accounts: StateFlow<List<AccountInfo>> = _accounts.asStateFlow()
 
     private val _isSaved = MutableStateFlow(false)
     val isSaved: StateFlow<Boolean> = _isSaved.asStateFlow()
@@ -71,6 +78,28 @@ class EditViewModel @Inject constructor(
         }
     }
 
+    fun addAccount() {
+        val current = _accounts.value.toMutableList()
+        current.add(AccountInfo("", "", ""))
+        _accounts.value = current
+    }
+
+    fun updateAccount(index: Int, account: AccountInfo) {
+        val current = _accounts.value.toMutableList()
+        if (index in current.indices) {
+            current[index] = account
+            _accounts.value = current
+        }
+    }
+
+    fun removeAccount(index: Int) {
+        val current = _accounts.value.toMutableList()
+        if (index in current.indices) {
+            current.removeAt(index)
+            _accounts.value = current
+        }
+    }
+
     fun loadCard(id: Long) {
         viewModelScope.launch {
             val entity = securityCardDao.getById(id) ?: return@launch
@@ -87,13 +116,27 @@ class EditViewModel @Inject constructor(
                 List(entity.rowCount) { "" }
             }
             
-            val currentCodes = _codes.value.toMutableList()
+            val currentCodes = MutableList(_codeLength.value) { "" }
             for (i in decodedList.indices) {
                 if (i < currentCodes.size) {
                     currentCodes[i] = decodedList[i]
                 }
             }
             _codes.value = currentCodes
+
+            val decryptedAccountsJson = cryptoManager.decrypt(entity.encryptedAccounts)
+            val decodedAccounts = try {
+                if (decryptedAccountsJson.isNotEmpty()) {
+                    Json.decodeFromString<List<AccountInfo>>(decryptedAccountsJson)
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+            _accounts.value = decodedAccounts
+
+            _isLoading.value = false
         }
     }
 
@@ -108,7 +151,8 @@ class EditViewModel @Inject constructor(
                 columnCount = 1,
                 codeLength = 4,
                 orientation = "HORIZONTAL",
-                encryptedCells = cryptoManager.encrypt(Json.encodeToString(_codes.value))
+                encryptedCells = cryptoManager.encrypt(Json.encodeToString(_codes.value)),
+                encryptedAccounts = cryptoManager.encrypt(Json.encodeToString(_accounts.value))
             )
             securityCardDao.insert(entity)
             _isSaved.value = true
@@ -120,7 +164,14 @@ class EditViewModel @Inject constructor(
         _title.value = ""
         _cardNumber.value = ""
         _callCenter.value = ""
+        _codeLength.value = 35
         _codes.value = List(35) { "" }
+        _accounts.value = emptyList()
+        _isSaved.value = false
+        _isLoading.value = false
+    }
+
+    fun resetSavedState() {
         _isSaved.value = false
     }
 }

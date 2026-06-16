@@ -1,10 +1,16 @@
 package kr.stonecold.securitycard.ui.view
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +37,8 @@ fun ViewScreen(
     val isDeleted by viewModel.isDeleted.collectAsState()
     var isSearchMode by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     LaunchedEffect(id) {
         viewModel.loadCard(id)
@@ -36,6 +46,7 @@ fun ViewScreen(
 
     LaunchedEffect(isDeleted) {
         if (isDeleted) {
+            viewModel.resetDeletedState()
             onNavigateBack()
         }
     }
@@ -98,15 +109,16 @@ fun ViewScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 Card(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     shape = MaterialTheme.shapes.medium,
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
                     ) {
                         Text(
                             text = uiState.name,
@@ -124,26 +136,29 @@ fun ViewScreen(
                             )
                         }
 
-                        if (uiState.codes.isEmpty() || uiState.codes.all { it.isBlank() }) {
-                            Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
-                                Text("저장된 코드 정보가 없습니다.", color = Color(0xFF777777))
-                            }
-                        } else if (isSearchMode) {
-                            CodeSearchView(cardNumber = uiState.cardNumber, codes = uiState.codes, modifier = Modifier.weight(1f))
+                        if (isSearchMode) {
+                            CodeSearchView(cardNumber = uiState.cardNumber, codes = uiState.codes, modifier = Modifier.wrapContentHeight())
                         } else {
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(minSize = 75.dp),
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .weight(1f)
-                                    .background(Color.Gray)
-                                    .padding(1.dp), // outer border
-                                horizontalArrangement = Arrangement.spacedBy(1.dp),
-                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                                    .fillMaxWidth()
+                                    .heightIn(max = 400.dp),
+                                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                                verticalArrangement = Arrangement.spacedBy(0.dp),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 itemsIndexed(uiState.codes) { index, code ->
-                                    CodeViewItem(index = index + 1, value = code)
+                                    Box(
+                                        modifier = Modifier
+                                            .border(0.5.dp, Color.LightGray)
+                                            .clickable {
+                                                clipboardManager.setText(AnnotatedString(code))
+                                                Toast.makeText(context, "${index + 1}번 코드가 복사되었습니다.", Toast.LENGTH_SHORT).show()
+                                            }
+                                    ) {
+                                        CodeViewItem(index = index + 1, value = code)
+                                    }
                                 }
                             }
                         }
@@ -158,6 +173,39 @@ fun ViewScreen(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+                }
+
+                if (uiState.accounts.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("계좌 정보", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                    uiState.accounts.forEachIndexed { index, account ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                                clipboardManager.setText(AnnotatedString(account.accountNumber))
+                                Toast.makeText(context, "계좌번호가 복사되었습니다.", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "${account.bankName} (예금주: ${account.accountHolder})",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF444444),
+                                    fontSize = 16.sp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = account.accountNumber,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = Color(0xFF444444)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
