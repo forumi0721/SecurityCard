@@ -64,8 +64,6 @@ class EditViewModel @Inject constructor(
         val currentCodes = _codes.value.toMutableList()
         if (length > currentCodes.size) {
             currentCodes.addAll(List(length - currentCodes.size) { "" })
-        } else if (length < currentCodes.size) {
-            currentCodes.subList(length, currentCodes.size).clear()
         }
         _codes.value = currentCodes
     }
@@ -151,7 +149,7 @@ class EditViewModel @Inject constructor(
                 columnCount = 1,
                 codeLength = 4,
                 orientation = "HORIZONTAL",
-                encryptedCells = cryptoManager.encrypt(Json.encodeToString(_codes.value)),
+                encryptedCells = cryptoManager.encrypt(Json.encodeToString(_codes.value.take(_codeLength.value))),
                 encryptedAccounts = cryptoManager.encrypt(Json.encodeToString(_accounts.value))
             )
             securityCardDao.insert(entity)
