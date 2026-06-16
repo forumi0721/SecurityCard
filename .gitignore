@@ -13,10 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
-
-.kotlin/
-
-# Keystore files
+app/debug
+app/release
 app/release-keystore.jks
-*.jks
-*.keystore
+.kotlin/
