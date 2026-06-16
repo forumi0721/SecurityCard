@@ -57,9 +57,10 @@ class CryptoManager {
     }
 
     fun decrypt(encryptedData: String): String {
-        if (encryptedData.isEmpty()) return ""
-        val parts = encryptedData.split(":")
-        if (parts.size != 2) return encryptedData
+        val data = encryptedData.trim()
+        if (data.isEmpty()) return ""
+        val parts = data.split(":")
+        if (parts.size != 2) return data
         
         return try {
             val iv = Base64.decode(parts[0], Base64.NO_WRAP)
@@ -72,7 +73,7 @@ class CryptoManager {
             String(cipher.doFinal(encryptedBytes), Charsets.UTF_8)
         } catch (e: Exception) {
             Log.e("CryptoManager", "Decryption failed: \${e.message}", e)
-            encryptedData
+            data
         }
     }
 

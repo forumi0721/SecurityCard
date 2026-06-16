@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SecurityCardDao {
-    @Query("SELECT * FROM security_cards")
+    @Query("SELECT * FROM security_cards ORDER BY displayOrder ASC, id DESC")
     fun getAll(): Flow<List<SecurityCardEntity>>
 
     @Query("SELECT * FROM security_cards WHERE id = :id")
@@ -21,6 +21,9 @@ interface SecurityCardDao {
 
     @Update
     suspend fun update(card: SecurityCardEntity)
+
+    @Update
+    suspend fun updateAll(cards: List<SecurityCardEntity>)
 
     @Delete
     suspend fun delete(card: SecurityCardEntity)

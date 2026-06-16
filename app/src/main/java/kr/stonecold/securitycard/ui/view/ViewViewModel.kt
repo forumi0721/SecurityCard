@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kr.stonecold.securitycard.core.data.SecurityCardDao
 import kr.stonecold.securitycard.core.data.SecurityCardEntity
+import kr.stonecold.securitycard.core.data.AccountInfo
 import kr.stonecold.securitycard.core.security.CryptoManager
 import javax.inject.Inject
 
@@ -20,6 +21,7 @@ data class ViewUiState(
     val cardNumber: String = "",
     val callCenter: String = "",
     val codes: List<String> = emptyList(),
+    val accounts: List<AccountInfo> = emptyList(),
     val error: String? = null
 )
 
@@ -38,6 +40,8 @@ class ViewViewModel @Inject constructor(
     private var currentEntity: SecurityCardEntity? = null
 
     fun loadCard(id: Long) {
+        _isDeleted.value = false
+        _uiState.value = ViewUiState(isLoading = true)
         viewModelScope.launch {
             try {
                 val entity = securityCardDao.getById(id)
@@ -54,12 +58,24 @@ class ViewViewModel @Inject constructor(
                         List(entity.rowCount) { "" }
                     }
 
+                    val decryptedAccountsJson = cryptoManager.decrypt(entity.encryptedAccounts)
+                    val decodedAccounts = try {
+                        if (decryptedAccountsJson.isNotEmpty()) {
+                            Json.decodeFromString<List<AccountInfo>>(decryptedAccountsJson)
+                        } else {
+                            emptyList()
+                        }
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+
                     _uiState.value = ViewUiState(
                         isLoading = false,
                         name = decryptedName,
                         cardNumber = decryptedNumber,
                         callCenter = decryptedCallCenter,
-                        codes = decodedList
+                        codes = decodedList,
+                        accounts = decodedAccounts
                     )
                 } else {
                     _uiState.value = ViewUiState(isLoading = false, error = "카드를 찾을 수 없습니다.")
@@ -77,5 +93,9 @@ class ViewViewModel @Inject constructor(
                 _isDeleted.value = true
             }
         }
+    }
+
+    fun resetDeletedState() {
+        _isDeleted.value = false
     }
 }

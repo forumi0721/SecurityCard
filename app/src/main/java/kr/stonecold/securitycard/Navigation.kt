@@ -5,42 +5,60 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.ui.NavDisplay
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import kr.stonecold.securitycard.ui.main.MainScreen
 import kr.stonecold.securitycard.ui.login.LoginScreen
 import kr.stonecold.securitycard.ui.edit.EditScreen
 import kr.stonecold.securitycard.ui.view.ViewScreen
-import kr.stonecold.securitycard.View
 
 @Composable
 fun MainNavigation() {
-  val backStack = rememberNavBackStack(Login)
+    val navController = rememberNavController()
 
-  NavDisplay(
-    backStack = backStack,
-    onBack = { backStack.removeLastOrNull() },
-    entryProvider =
-      entryProvider {
-        entry<Login> {
-          LoginScreen(onLoginSuccess = {
-             backStack.removeAll { true }
-             backStack.add(Main) 
-          })
+    NavHost(
+        navController = navController,
+        startDestination = "login"
+    ) {
+        composable("login") {
+            LoginScreen(onLoginSuccess = {
+                navController.navigate("main") {
+                    popUpTo(0) { inclusive = true }
+                }
+            })
         }
-        entry<Main> {
-          MainScreen(onItemClick = { navKey -> backStack.add(navKey) }, onAddClick = { backStack.add(Edit()) }, onSettingsClick = { backStack.add(Settings) }, modifier = Modifier.safeDrawingPadding().padding(16.dp))
+        composable("main") {
+            MainScreen(
+                onItemClick = { id -> navController.navigate("view/$id") },
+                onAddClick = { navController.navigate("edit") },
+                onSettingsClick = { navController.navigate("settings") },
+                modifier = Modifier.safeDrawingPadding().padding(16.dp)
+            )
         }
-        entry<Edit> { navKey ->
-          EditScreen(id = navKey.id, onNavigateBack = { backStack.removeLast() })
+        composable(
+            route = "edit?id={id}",
+            arguments = listOf(navArgument("id") { type = NavType.StringType; nullable = true })
+        ) { backStackEntry ->
+            val idParam = backStackEntry.arguments?.getString("id")
+            val id = idParam?.toLongOrNull()
+            EditScreen(id = id, onNavigateBack = { navController.popBackStack() })
         }
-        entry<View> { navKey ->
-          ViewScreen(id = navKey.id, onNavigateBack = { backStack.removeLast() }, onNavigateToEdit = { backStack.add(Edit(navKey.id)) })
+        composable(
+            route = "view/{id}",
+            arguments = listOf(navArgument("id") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getLong("id") ?: 0L
+            ViewScreen(
+                id = id,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { navController.navigate("edit?id=$id") }
+            )
         }
-        entry<Settings> {
-          kr.stonecold.securitycard.ui.settings.SettingsScreen(onNavigateBack = { backStack.removeLast() })
+        composable("settings") {
+            kr.stonecold.securitycard.ui.settings.SettingsScreen(onNavigateBack = { navController.popBackStack() })
         }
-      },
-  )
+    }
 }
