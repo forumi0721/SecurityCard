@@ -19,7 +19,7 @@ jobs:
 
       - name: Setup cache for Gradle
         id: cache-gradle
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -85,6 +85,7 @@ jobs:
         with:
           name: ${{ env.PROJECT_NAME }}-release-${{ env.VERSION }}
           path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 1
 
   release:
     needs: build

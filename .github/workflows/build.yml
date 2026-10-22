@@ -18,7 +18,7 @@ jobs:
 
       - name: Setup cache for Gradle
         id: cache-gradle
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -56,4 +56,5 @@ jobs:
         with:
           name: ${{ env.PROJECT_NAME }}-debug-${{ env.SHORT_SHA }}
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
 
