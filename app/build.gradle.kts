@@ -1,44 +1,53 @@
 plugins {
   alias(libs.plugins.android.application)
-  id("org.jetbrains.kotlin.android")
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.hilt)
   alias(libs.plugins.ksp)
 }
 
-kotlin {
-  jvmToolchain(17)
+
+val appVersion = providers.gradleProperty("appVersion").orElse("1.0.0").get()
+val appVersionParts = appVersion.split(".").map(String::toInt)
+require(appVersionParts.size == 3 && appVersionParts.all { it in 0..999 }) {
+    "appVersion must use MAJOR.MINOR.PATCH with each part between 0 and 999"
 }
+val computedVersionCode = appVersionParts[0] * 1_000_000 + appVersionParts[1] * 1_000 + appVersionParts[2]
+
 
 android {
   namespace = "kr.stonecold.securitycard"
-  compileSdk = 36
-
+  compileSdk = 37
+    compileSdkMinor = 1
   defaultConfig {
         applicationId = "kr.stonecold.securitycard"
-        minSdk = 24
-        targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        minSdk = 33
+        targetSdk = 37
+        versionCode = computedVersionCode
+        versionName = appVersion
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
         create("release") {
-            storeFile = File(projectDir, "release-keystore.jks")
-            storePassword = System.getenv("storePassword")
-            keyAlias = System.getenv("keyAlias")
-            keyPassword = System.getenv("keyPassword")
+            val releaseStore = providers.gradleProperty("keystoreFile")
+                .map(::File)
+                .orElse(File(projectDir, "release-keystore.jks"))
+                .get()
+            storeFile = releaseStore
+            storePassword = System.getenv("KEY_STORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -47,9 +56,6 @@ android {
     }
     buildFeatures {
       compose = true
-      aidl = false
-      buildConfig = false
-      shaders = false
     }
 
     packaging {
@@ -57,10 +63,20 @@ android {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
       }
     }
+    lint {
+        warningsAsErrors = true
+        disable += setOf("GradleDependency", "ObsoleteSdkInt")
+    }
 }
 
-kotlin {
-    jvmToolchain(17)
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" && requested.name == "compose-group-mapping") {
+                useVersion("2.4.21")
+            }
+        }
+    }
 }
 
 dependencies {
@@ -115,5 +131,5 @@ dependencies {
   implementation(libs.kotlinx.serialization.json)
 
   // Biometric
-  implementation("androidx.biometric:biometric:1.1.0")
+  implementation(libs.androidx.biometric)
 }

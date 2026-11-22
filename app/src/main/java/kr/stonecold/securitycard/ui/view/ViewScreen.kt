@@ -1,5 +1,6 @@
 package kr.stonecold.securitycard.ui.view
 
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -22,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 
@@ -232,7 +233,7 @@ fun CodeViewItem(index: Int, value: String) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = String.format("%02d", index),
+                text = String.format(Locale.ROOT, "%02d", index),
                 color = Color(0xFFEEEEEE),
                 fontSize = 14.sp
             )

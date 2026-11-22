@@ -1,19 +1,53 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-app/debug
-app/release
-app/release-keystore.jks
+# Local Android and Gradle state
+.gradle/
 .kotlin/
+local.properties
+
+# Build outputs
+**/build/
+captures/
+output.json
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Native build outputs
+.externalNativeBuild/
+.cxx/
+obj/
+
+# Local environment and signing material
+.env
+.env.*
+/build.sh
+*.jks
+*.keystore
+*.hprof
+
+# Android Studio and IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.shelf/
+
+# Other IDE and generated files
+bin/
+gen/
+out/
+.navigation/
+.classpath
+.project
+.cproject
+.settings/
+
+# Logs and operating system files
+*.log
+.DS_Store
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini

@@ -1,5 +1,6 @@
 package kr.stonecold.securitycard.ui.edit
 
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,9 +11,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,7 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -231,6 +237,24 @@ fun EditScreen(
 
 @Composable
 fun CodeInputItem(index: Int, value: String, onValueChange: (String) -> Unit) {
+    val textFieldState = rememberTextFieldState(value)
+    val latestValue by rememberUpdatedState(value)
+    val latestOnValueChange by rememberUpdatedState(onValueChange)
+
+    LaunchedEffect(textFieldState, value) {
+        if (textFieldState.text.toString() != value) {
+            textFieldState.edit {
+                replace(0, length, value)
+            }
+        }
+    }
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }
+            .collect { text ->
+                if (text != latestValue) latestOnValueChange(text)
+            }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -246,15 +270,17 @@ fun CodeInputItem(index: Int, value: String, onValueChange: (String) -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = String.format("%02d", index),
+                text = String.format(Locale.ROOT, "%02d", index),
                 color = Color(0xFFEEEEEE),
                 fontSize = 14.sp
             )
         }
         BasicTextField(
-            value = value,
-            onValueChange = { if (it.length <= 4) onValueChange(it) },
-            singleLine = true,
+            state = textFieldState,
+            inputTransformation = InputTransformation {
+                if (length > 4) revertAllChanges()
+            },
+            lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             modifier = Modifier
                 .weight(1f)
@@ -266,7 +292,7 @@ fun CodeInputItem(index: Int, value: String, onValueChange: (String) -> Unit) {
                 textAlign = TextAlign.Center
             ),
             cursorBrush = SolidColor(Color.Black),
-            decorationBox = { innerTextField ->
+            decorator = TextFieldDecorator { innerTextField ->
                 Box(contentAlignment = Alignment.Center) {
                     innerTextField()
                 }
