@@ -28,6 +28,11 @@ git clone https://github.com/forumi0721/SecurityCard.git
 2. Android Studio(최신 버전 권장)에서 프로젝트를 엽니다.
 3. 안드로이드 기기를 연결하고 앱을 빌드 및 실행합니다.
 
+## 요구 사항
+
+- Android 13(API 33) 이상
+- JDK 27 (Gradle 실행용)
+
 ## 빌드
 
 로컬 debug APK는 `./build.sh debug`, 서명된 release APK는 `./build.sh release`로 빌드합니다. Release 서명 정보는 로컬 `~/.bin/KeyStore/`에서 읽습니다. GitHub Actions는 별도 workflow에서 빌드합니다.
