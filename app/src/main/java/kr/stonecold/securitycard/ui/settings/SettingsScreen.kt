@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import kr.stonecold.securitycard.AppUpdateCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +51,8 @@ fun SettingsScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text("기기에서 지원하는 생체 인증(지문, 얼굴 등)을 사용하여 간편하게 로그인할 수 있습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(24.dp))
+            AppUpdateCard(autoCheck = false)
         }
     }
 }

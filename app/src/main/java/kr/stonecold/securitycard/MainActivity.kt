@@ -18,7 +18,10 @@ class MainActivity : FragmentActivity() {
 
     enableEdgeToEdge()
     setContent {
-      SecurityCardV2Theme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { MainNavigation() } }
+      SecurityCardV2Theme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+          AppUpdateEffect()
+          MainNavigation()
+      } }
     }
   }
 }
